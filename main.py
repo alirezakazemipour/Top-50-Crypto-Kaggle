@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Input, GRU
 from tensorflow.keras.regularizers import L2
+import pandas as pd
 
 if __name__ == "__main__":
     args = get_args()
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     if os.path.exists("api_key.wandb"):
         with open("api_key.wandb", 'r') as f:
             os.environ["WANDB_API_KEY"] = f.read()
-            # os.environ["WANDB_MODE"] = "offline"
+            os.environ["WANDB_MODE"] = "offline"
     else:
         raise FileNotFoundError("WandB API Token Not Found!")
     wandb.init(project="Cryptocurrencies' value prediction.")
@@ -56,5 +57,9 @@ if __name__ == "__main__":
               epochs=args.epoch,
               callbacks=[wandb.keras.WandbCallback()],
               validation_split=0.15,
-              verbose=0
+              verbose=1
               )
+
+    y_pred = model.predict(x_test)
+    test_df = pd.DataFrame({'Price': y_test})
+    log_comparison_result_plot(test_df.assign(NN=y_pred), "NN", "NN", wandb)
