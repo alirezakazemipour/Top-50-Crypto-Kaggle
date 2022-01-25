@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.13.0-27-generic-x86_64-with-glibc2.29",
+    "python": "3.8.10",
+    "heartbeatAt": "2022-01-25T16:31:09.236959",
+    "startedAt": "2022-01-25T16:31:07.428988",
+    "docker": null,
+    "gpu": "NVIDIA GeForce GTX 960M",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/alireza/github/Top-50-Crypto-Kaggle/main.py",
+    "codePath": "main.py",
+    "git": {
+        "remote": "git@github.com:alirezakazemipour/Top-50-Crypto-Kaggle.git",
+        "commit": "ddc7881939f83e72ad56726f5e66e8038abf3e87"
+    },
+    "email": "kazemipour.alireza@gmail.com",
+    "root": "/home/alireza/github/Top-50-Crypto-Kaggle",
+    "host": "Alireza",
+    "username": "alireza",
+    "executable": "/usr/bin/python3.8"
+}
