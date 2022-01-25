@@ -4,6 +4,7 @@ kaggle.json
 *.zip
 datasets/
 api_key.wandb
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
