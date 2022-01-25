@@ -8,7 +8,7 @@ import wandb
 import os
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Input
+from tensorflow.keras.layers import LSTM, Dense, Input, GRU
 from tensorflow.keras.regularizers import L2
 
 if __name__ == "__main__":
@@ -43,8 +43,8 @@ if __name__ == "__main__":
     model = Sequential(
         [
             Input(shape=x_train.shape[1:]),
-            LSTM(128, return_sequences=True),
-            LSTM(32, dropout=0.95),
+            GRU(128, return_sequences=True),
+            GRU(32, dropout=0.95),
             Dense(1)
         ]
     )
