@@ -9,6 +9,4 @@ def get_args():
     parser.add_argument("--batch_size", type=int, default=512, help="batch size")
     parser.add_argument("--epoch", type=int, default=30, help="number of epochs")
 
-
-
     return parser.parse_args()

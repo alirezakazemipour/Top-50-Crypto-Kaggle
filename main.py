@@ -8,7 +8,7 @@ import wandb
 import os
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Input, GRU
+from tensorflow.keras.layers import Dense, Input, GRU
 from tensorflow.keras.regularizers import L2
 import pandas as pd
 
