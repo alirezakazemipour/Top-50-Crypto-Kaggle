@@ -32,10 +32,13 @@ def log_comparison_result_plot(df, method, window_range, wandb):
 
 
 def make_sequence(data, n, offset):
+    # https://dashee87.github.io/deep%20learning/python/predicting-cryptocurrency-prices-with-deep-learning/
+    data = data.values
+
     x, y = [], []
 
     for i in range(offset, len(data)):
-        x.append(data[i - n:i])
-        y.append(data[i])
+        x.append(data[i - n:i] / data[i - n] - 1)
+        y.append(data[i][0] / data[i - n][0] - 1)
 
     return np.stack(x), np.hstack(y)
