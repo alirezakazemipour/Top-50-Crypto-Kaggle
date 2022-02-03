@@ -99,7 +99,7 @@ class MultiAttention(Layer):
 
 
 class TransformerEncoder(Layer):
-    def __init__(self, d_k, d_v, n_heads, ff_dim, dropout=0.1, **kwargs):
+    def __init__(self, d_k, d_v, n_heads, ff_dim, dropout=0., **kwargs):
         super(TransformerEncoder, self).__init__()
         self.d_k = d_k
         self.d_v = d_v
@@ -145,9 +145,9 @@ def create_model(seq_len, d_k, d_v, n_heads, ff_dim):
     x = attn_layer2((x, x, x))
     x = attn_layer3((x, x, x))
     x = GlobalAveragePooling1D(data_format='channels_first')(x)
-    x = Dropout(0.1)(x)
+    # x = Dropout(0.1)(x)
     x = Dense(64, activation='relu')(x)
-    x = Dropout(0.1)(x)
+    # x = Dropout(0.1)(x)
     out = Dense(1, activation='linear')(x)
 
     model = Model(inputs=in_seq, outputs=out)
@@ -209,7 +209,7 @@ if __name__ == "__main__":
               verbose=1,
               validation_data=(x_valid, y_valid),
               )
-    y_pred = model.predict(x_train)
-    tmp = pd.DataFrame({'Price': y_train})
+    y_pred = model.predict(x_test)
+    tmp = pd.DataFrame({'Price': y_test})
     print(np.mean((y_pred - y_test) ** 2))
     log_comparison_result_plot(tmp.assign(NN=y_pred), "NN", "NN", wandb)
