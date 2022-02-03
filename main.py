@@ -6,7 +6,7 @@ References:
 from utils import *
 import wandb
 import os
-from sklearn.preprocessing import MinMaxScaler
+# from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Input, LSTM, Dropout
 import pandas as pd
@@ -27,32 +27,32 @@ if __name__ == "__main__":
 
     train_set, valid_set, test_set = get_sets(args.crypto_name)
 
-    window_range = "sma_" + str(args.window_size) + 'day'
-    sma = valid_set.rolling(args.window_size).mean()
-    log_comparison_result_plot(valid_set.assign(SMA=sma), "SMA", window_range, wandb)
+    # window_range = "sma_" + str(args.window_size) + 'day'
+    # sma = valid_set.rolling(args.window_size).mean()
+    # log_comparison_result_plot(valid_set.assign(SMA=sma), "SMA", window_range, wandb)
+    #
+    # window_range = "ema_" + str(args.window_size) + 'day'
+    # ema = valid_set.ewm(span=args.window_size, adjust=False).mean()
+    # log_comparison_result_plot(valid_set.assign(EMA=ema), "EMA", window_range, wandb)
 
-    window_range = "ema_" + str(args.window_size) + 'day'
-    ema = valid_set.ewm(span=args.window_size, adjust=False).mean()
-    log_comparison_result_plot(valid_set.assign(EMA=ema), "EMA", window_range, wandb)
-
-    scaler = MinMaxScaler()
-    train_set = scaler.fit_transform(train_set.values)
+    # scaler = MinMaxScaler()
+    # train_set = scaler.fit_transform(train_set.values)
     x_train, y_train = make_sequence(train_set, args.window_size, args.window_size)
-    valid_set = scaler.transform(valid_set.values)
+    # valid_set = scaler.transform(valid_set.values)
     x_valid, y_valid = make_sequence(valid_set, args.window_size, args.window_size)
-    test_set = scaler.transform(test_set.values)
+    # test_set = scaler.transform(test_set.values)
     x_test, y_test = make_sequence(test_set, args.window_size, args.window_size)
 
     model = Sequential(
         [
             Input(shape=x_train.shape[1:]),
-            LSTM(64, return_sequences=True, ),
-            LSTM(64),
+            LSTM(128, return_sequences=True, ),
+            LSTM(128),
             Dense(1)
         ]
     )
     model.summary()
-    model.compile("adam", loss="mse")
+    model.compile("adam", loss="mae")
     model.fit(x_train,
               y_train,
               batch_size=args.batch_size,

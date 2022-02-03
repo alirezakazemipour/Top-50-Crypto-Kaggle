@@ -8,9 +8,7 @@ def get_sets(crypto_name,
              ):
     dataset_path = "datasets/top-50-cryptocurrency-historical-prices/" + crypto_name + ".csv"
     df = pd.read_csv(dataset_path)
-    data = df[["Price"]]
-    # abs_base = data.iloc[0]
-    # data = (data / abs_base) - 1
+    data = df[["Price", "Low", "High", "Open"]]
 
     train_portion = 1 - test_portion
     train_size = int(train_portion * len(data))
