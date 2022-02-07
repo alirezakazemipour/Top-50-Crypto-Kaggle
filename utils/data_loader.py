@@ -1,7 +1,5 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-
 
 def get_sets(crypto_name,
              valid_portion=0.1,
@@ -9,7 +7,8 @@ def get_sets(crypto_name,
              ):
     dataset_path = "datasets/top-50-cryptocurrency-historical-prices/" + crypto_name + ".csv"
     df = pd.read_csv(dataset_path)
-    data = df[["Price", "Low", "High", "Open"]]
+    df = df.sort_values(by="Date")
+    data = df[["Price", "Open", "High", "Low", "Vol."]]
 
     train_portion = 1 - test_portion
     train_size = int(train_portion * len(data))

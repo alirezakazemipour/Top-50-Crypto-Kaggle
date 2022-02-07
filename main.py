@@ -3,6 +3,9 @@ References:
     - [Idea](https://neptune.ai/blog/predicting-stock-prices-using-machine-learning)
     - [Dataset](https://www.kaggle.com/odins0n/top-50-cryptocurrency-historical-prices)
 """
+import matplotlib.pyplot as plt
+import numpy as np
+
 from utils import *
 import wandb
 import os
@@ -78,17 +81,18 @@ class SingleAttention(Layer):
 
 
 class MultiAttention(Layer):
-    def __init__(self, d_k, d_v, n_heads):
+    def __init__(self, in_dim, d_k, d_v, n_heads):
         super(MultiAttention, self).__init__()
         self.d_k = d_k
         self.d_v = d_v
+        self.in_dim = in_dim
         self.n_heads = n_heads
         self.attn_heads = list()
 
     def build(self, input_shape):
         for n in range(self.n_heads):
             self.attn_heads.append(SingleAttention(self.d_k, self.d_v))
-        self.linear = Dense(6, input_shape=input_shape, kernel_initializer='glorot_uniform',
+        self.linear = Dense(self.in_dim + 2, input_shape=input_shape, kernel_initializer='glorot_uniform',
                             bias_initializer='glorot_uniform')
 
     def call(self, inputs):
@@ -99,22 +103,23 @@ class MultiAttention(Layer):
 
 
 class TransformerEncoder(Layer):
-    def __init__(self, d_k, d_v, n_heads, ff_dim, dropout=0., **kwargs):
+    def __init__(self, in_dim, d_k, d_v, n_heads, ff_dim, dropout=0., **kwargs):
         super(TransformerEncoder, self).__init__()
         self.d_k = d_k
         self.d_v = d_v
+        self.in_dim = in_dim
         self.n_heads = n_heads
         self.ff_dim = ff_dim
         self.attn_heads = list()
         self.dropout_rate = dropout
 
     def build(self, input_shape):
-        self.attn_multi = MultiAttention(self.d_k, self.d_v, self.n_heads)
+        self.attn_multi = MultiAttention(self.in_dim, self.d_k, self.d_v, self.n_heads)
         self.attn_dropout = Dropout(self.dropout_rate)
         self.attn_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
         self.ff_conv1D_1 = Conv1D(filters=self.ff_dim, kernel_size=1, activation='relu')
-        self.ff_conv1D_2 = Conv1D(filters=6, kernel_size=1)  # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
+        self.ff_conv1D_2 = Conv1D(filters=self.in_dim + 2, kernel_size=1)  # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
         self.ff_dropout = Dropout(self.dropout_rate)
         self.ff_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
@@ -130,29 +135,30 @@ class TransformerEncoder(Layer):
         return ff_layer
 
 
-def create_model(seq_len, d_k, d_v, n_heads, ff_dim):
+def create_model(in_dim, seq_len, d_k, d_v, n_heads, ff_dim):
     '''Initialize time and transformer layers'''
     time_embedding = Time2Vector(seq_len)
-    attn_layer1 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
-    attn_layer2 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
-    attn_layer3 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
+    attn_layer1 = TransformerEncoder(in_dim, d_k, d_v, n_heads, ff_dim)
+    attn_layer2 = TransformerEncoder(in_dim, d_k, d_v, n_heads, ff_dim)
+    attn_layer3 = TransformerEncoder(in_dim, d_k, d_v, n_heads, ff_dim)
 
     '''Construct model'''
-    in_seq = Input(shape=(seq_len, 4))
+    in_seq = Input(shape=(seq_len, in_dim))
     x = time_embedding(in_seq)
     x = Concatenate(axis=-1)([in_seq, x])
     x = attn_layer1((x, x, x))
     x = attn_layer2((x, x, x))
     x = attn_layer3((x, x, x))
     x = GlobalAveragePooling1D(data_format='channels_first')(x)
-    # x = Dropout(0.1)(x)
+    x = Dropout(0.1)(x)
     x = Dense(64, activation='relu')(x)
-    # x = Dropout(0.1)(x)
+    x = Dropout(0.1)(x)
     out = Dense(1, activation='linear')(x)
 
     model = Model(inputs=in_seq, outputs=out)
     model.summary()
-    model.compile(loss="mse", optimizer='adam', metrics=['mae', 'mape'])
+    model.compile(loss="huber", optimizer=tf.keras.optimizers.Adam()
+                  , metrics=['mae', 'mape'])
     return model
 
 
@@ -200,7 +206,7 @@ if __name__ == "__main__":
     # model.summary()
     # exit()
     # model.compile("adam", loss="mse")
-    model = create_model(args.window_size, 64, 64, 14, 64)
+    model = create_model(x_train.shape[-1], args.window_size, 16, 16, 25, 16)
     model.fit(x_train,
               y_train,
               batch_size=args.batch_size,
