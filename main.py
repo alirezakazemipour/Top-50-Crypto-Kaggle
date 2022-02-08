@@ -23,7 +23,7 @@ if __name__ == "__main__":
         raise FileNotFoundError("WandB API Token Not Found!")
     wandb.init(project="Cryptocurrencies' value prediction.")
 
-    cryptonames = ["Bitcoin", "BitTorrent", "Ethereum", "Tether", "Tron", "Neo", "Binance_Coin", "Cosmos", "Dogecoin", "EOS"]
+    cryptonames = ["Algorand", "Bitcoin", "BitTorrent", "Ethereum", "Tether", "Tron", "IOTA", "Binance_Coin", "Cosmos", "Dogecoin", "EOS"]
     path = "datasets/top-50-cryptocurrency-historical-prices"
     results = []
     models = {"cnn": {"config": dict(seq_len=args.window_size, in_dim=5),

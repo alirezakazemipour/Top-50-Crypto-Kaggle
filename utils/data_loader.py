@@ -7,7 +7,7 @@ def get_sets(dataset_path,
              test_portion=0.05
              ):
     df = pd.read_csv(dataset_path)
-    df = df.sort_values(by="Date")
+    # df = df.sort_values(by="Date")
     data = df[["Price", "Open", "High", "Low", "Vol."]]
 
     train_portion = 1 - test_portion
