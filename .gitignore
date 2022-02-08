@@ -5,6 +5,8 @@ kaggle.json
 datasets/
 api_key.wandb
 wandb/
+nn_without_frameworks/
+*.h5
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

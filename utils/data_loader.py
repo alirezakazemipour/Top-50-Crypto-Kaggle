@@ -2,13 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def get_sets(crypto_name,
+def get_sets(dataset_path,
              valid_portion=0.15,
              test_portion=0.05
              ):
-    dataset_path = "datasets/top-50-cryptocurrency-historical-prices/" + crypto_name + ".csv"
     df = pd.read_csv(dataset_path)
-    data = df[["Price", "Low", "High", "Open"]]
+    # df = df.sort_values(by="Date")
+    data = df[["Price", "Open", "High", "Low", "Vol."]]
 
     train_portion = 1 - test_portion
     train_size = int(train_portion * len(data))
@@ -20,4 +20,4 @@ def get_sets(crypto_name,
     train_df = train_data.loc[:train_size]
     valid_df = train_data.loc[train_size:]
 
-    return train_df, valid_df, test_df
+    return df, train_df, valid_df, test_df
