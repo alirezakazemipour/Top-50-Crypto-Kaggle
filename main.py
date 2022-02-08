@@ -9,12 +9,11 @@ import numpy as np
 from utils import *
 import wandb
 import os
-from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input, LSTM, Layer, Conv1D, LayerNormalization, Dropout, Concatenate, \
     GlobalAveragePooling1D
 import tensorflow as tf
-import pandas as pd
+import glob
 
 
 class Time2Vector(Layer):
@@ -119,7 +118,8 @@ class TransformerEncoder(Layer):
         self.attn_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
         self.ff_conv1D_1 = Conv1D(filters=self.ff_dim, kernel_size=1, activation='relu')
-        self.ff_conv1D_2 = Conv1D(filters=self.in_dim + 2, kernel_size=1)  # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
+        self.ff_conv1D_2 = Conv1D(filters=self.in_dim + 2,
+                                  kernel_size=1)  # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
         self.ff_dropout = Dropout(self.dropout_rate)
         self.ff_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
@@ -156,15 +156,11 @@ def create_model(in_dim, seq_len, d_k, d_v, n_heads, ff_dim):
     out = Dense(1, activation='linear')(x)
 
     model = Model(inputs=in_seq, outputs=out)
-    model.summary()
-    model.compile(loss="huber", optimizer=tf.keras.optimizers.Adam()
-                  , metrics=['mae', 'mape'])
     return model
 
 
 if __name__ == "__main__":
     args = get_args()
-    set_random_seed(args.seed)
     allow_gpu_growth()
 
     if os.path.exists("api_key.wandb"):
@@ -176,46 +172,43 @@ if __name__ == "__main__":
         raise FileNotFoundError("WandB API Token Not Found!")
     wandb.init(project="Cryptocurrencies' value prediction.")
 
-    train_set, valid_set, test_set = get_sets(args.crypto_name)
+    files = glob.glob("datasets/top-50-cryptocurrency-historical-prices/*.csv")
+    files.sort()
+    for file in files:
+        print(f"==>{file.split(os.sep)[-1]}")
+        set_random_seed(args.seed)
+        dataset, train_set, valid_set, test_set = get_sets(file)
 
-    # window_range = "sma_" + str(args.window_size) + 'day'
-    # sma = valid_set.rolling(args.window_size).mean()
-    # log_comparison_result_plot(valid_set.assign(SMA=sma), "SMA", window_range, wandb)
-    #
-    # window_range = "ema_" + str(args.window_size) + 'day'
-    # ema = valid_set.ewm(span=args.window_size, adjust=False).mean()
-    # log_comparison_result_plot(valid_set.assign(EMA=ema), "EMA", window_range, wandb)
+        y_true = dataset[["Price"]].values
+        y_sma = dataset[["Price"]].rolling(args.window_size).mean().values
+        y_ema = dataset[["Price"]].ewm(span=args.window_size, adjust=False).mean()
+        log_comparison_result_plot(y_true, y_sma, "SMA", wandb)
+        log_comparison_result_plot(y_true, y_ema, "EMA", wandb)
 
-    # scaler = MinMaxScaler()
-    # train_set = scaler.fit_transform(train_set.values)
-    x_train, y_train = make_sequence(train_set, args.window_size, args.window_size)
-    # valid_set = scaler.transform(valid_set.values)
-    x_valid, y_valid = make_sequence(valid_set, args.window_size, args.window_size)
-    # test_set = scaler.transform(test_set.values)
-    x_test, y_test = make_sequence(test_set, args.window_size, args.window_size)
+        x_train, y_train = make_sequence(train_set, args.window_size, args.window_size)
+        x_valid, y_valid = make_sequence(valid_set, args.window_size, args.window_size)
+        x_test, y_test = make_sequence(test_set, args.window_size, args.window_size)
 
-    # model = Sequential(
-    #     [
-    #         Input(shape=x_train.shape[1:]),
-    #         Time2Vector(args.window_size),
-    #         LSTM(128, return_sequences=True),
-    #         LSTM(128),
-    #         Dense(1)
-    #     ]
-    # )
-    # model.summary()
-    # exit()
-    # model.compile("adam", loss="mse")
-    model = create_model(x_train.shape[-1], args.window_size, 16, 16, 25, 16)
-    model.fit(x_train,
-              y_train,
-              batch_size=args.batch_size,
-              epochs=args.epoch,
-              callbacks=[wandb.keras.WandbCallback()],
-              verbose=1,
-              validation_data=(x_valid, y_valid),
-              )
-    y_pred = model.predict(x_test)
-    tmp = pd.DataFrame({'Price': y_test})
-    print(np.mean((y_pred - y_test) ** 2))
-    log_comparison_result_plot(tmp.assign(NN=y_pred), "NN", "NN", wandb)
+        model = create_model(x_train.shape[-1], args.window_size, 16, 16, 25, 16)
+        model.summary()
+        model.compile(loss="huber", optimizer=tf.keras.optimizers.Adam()
+                      , metrics=['mae', 'mape'])
+        model.fit(x_train,
+                  y_train,
+                  batch_size=args.batch_size,
+                  epochs=args.epoch,
+                  callbacks=[wandb.keras.WandbCallback()],
+                  verbose=2,
+                  validation_data=(x_valid, y_valid),
+                  )
+        y_pred = model.predict(x_test)
+        y_pred = np.squeeze(y_pred, -1)
+        print(np.mean((y_pred - y_test) ** 2))
+        y_true = dataset["Price"]
+        y_pred = inv_sequence(test_set, y_pred, args.window_size, args.window_size)
+        y_train = model.predict(x_train)
+        y_train = inv_sequence(train_set, y_train, args.window_size, args.window_size)
+        y_valid = model.predict(x_valid)
+        y_valid = inv_sequence(valid_set, y_valid, args.window_size, args.window_size)
+        y_pred = np.concatenate([y_train, y_valid, y_pred])
+        log_comparison_result_plot(y_true, y_pred, "NN", wandb)
