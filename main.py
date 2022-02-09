@@ -1,13 +1,13 @@
 """
 References:
     - [Idea](https://neptune.ai/blog/predicting-stock-prices-using-machine-learning)
+    - [Idea](https://towardsdatascience.com/stock-predictions-with-state-of-the-art-transformer-and-time-embeddings-3a4485237de6)
     - [Dataset](https://www.kaggle.com/odins0n/top-50-cryptocurrency-historical-prices)
 """
 from utils import *
 from models import get_model
 import wandb
 import os
-import glob
 from tqdm import tqdm
 
 if __name__ == "__main__":
@@ -21,9 +21,9 @@ if __name__ == "__main__":
                 os.environ["WANDB_MODE"] = "offline"
     else:
         raise FileNotFoundError("WandB API Token Not Found!")
-    wandb.init(project="Cryptocurrencies' value prediction.")
 
-    cryptonames = ["Algorand", "Bitcoin", "BitTorrent", "Ethereum", "Tether", "Tron", "IOTA", "Binance_Coin", "Cosmos", "Dogecoin", "EOS"]
+    cryptonames = ["Ethereum", "Algorand", "Bitcoin", "BitTorrent", "Tether", "Tron", "IOTA", "Binance_Coin", "Cosmos",
+                   "Dogecoin", "EOS"]
     path = "datasets/top-50-cryptocurrency-historical-prices"
     results = []
     models = {"cnn": {"config": dict(seq_len=args.window_size, in_dim=5),
@@ -46,10 +46,11 @@ if __name__ == "__main__":
         x_test, y_test = make_sequence(test_set, args.window_size, args.window_size)
 
         for model_name, d in models.items():
+            run = wandb.init(reinit=True, project="Cryptocurrencies' value prediction.",
+                             name=file.split(os.sep)[-1].split(".")[0] + "_" + model_name)
             set_random_seed(args.seed)
             model = get_model(model_name, **d["config"])
-            # model.summary()
-            model.compile(loss="huber", optimizer="adam", metrics=['mae', 'mape'])
+            model.compile(loss="huber", optimizer="adam", metrics=['mae'])
             model.fit(x_train,
                       y_train,
                       batch_size=args.batch_size,
@@ -66,6 +67,7 @@ if __name__ == "__main__":
             train_size = int((1 - 0.05) * tmp)
             y_pred = np.append(dataset[["Price"]].values[:train_size + args.window_size], y_pred)
             models[model_name]["y_pred"] = y_pred
+            run.finish()
 
         y_true = dataset[["Price"]].values
         y_sma = dataset[["Price"]].rolling(args.window_size).mean().values
@@ -80,6 +82,7 @@ if __name__ == "__main__":
              file.split(os.sep)[-1].split(".")[0]
              )
         )
+    run = wandb.init(reinit=True, project="Cryptocurrencies' value prediction.", name="final image")
     plot_results(results,
                  wandb
                  )

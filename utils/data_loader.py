@@ -1,13 +1,10 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-
 
 def get_sets(dataset_path,
              valid_portion=0.15,
              test_portion=0.05
              ):
     df = pd.read_csv(dataset_path)
-    # df = df.sort_values(by="Date")
     data = df[["Price", "Open", "High", "Low", "Vol."]]
 
     train_portion = 1 - test_portion
